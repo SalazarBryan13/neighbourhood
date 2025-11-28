@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "catalogo-expo",
-    "slug": "catalogo-expo",
+    "name": "Catálogo App",
+    "slug": "catalogo-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
