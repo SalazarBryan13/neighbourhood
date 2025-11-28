@@ -18,7 +18,7 @@ function TabNavigator() {
     <Tab.Navigator
       screenOptions={({route}) => ({
         tabBarIcon: ({focused, color, size}) => {
-          let iconName: keyof typeof MaterialIcons.glyphMap="help";
+          let iconName: keyof typeof MaterialIcons.glyphMap = 'help';
 
           if (route.name === 'Inicio') {
             iconName = 'home';
