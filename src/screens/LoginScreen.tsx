@@ -5,18 +5,36 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { supabase } from "../lib/supabaseClient";
+
+
 
 const LoginScreen: React.FC = () => {
   const navigation = useNavigation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = () => {
-    // validaciones para futuro
-    console.log("Email:", email);
-    console.log("Password:", password);
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert("Error", "Por favor llena todos los campos");
+      return;
+    }
+
+    // Llamar a Supabase para validar el login
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email,
+      password: password,
+    });
+
+    if (error) {
+      Alert.alert("Error al iniciar sesión", error.message);
+      return;
+    }
+
+    console.log("Usuario logueado:", data.user);
 
     navigation.navigate("Tabs" as never); // Ir al inicio después del login
   };
@@ -85,5 +103,5 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: "#fff",
     fontWeight: "bold",
-  },
+  },
 });

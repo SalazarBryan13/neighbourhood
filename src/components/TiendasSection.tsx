@@ -1,73 +1,50 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, Image, ScrollView} from 'react-native';
 import {MaterialIcons} from '@expo/vector-icons';
-
-interface Tienda {
-  id: string;
-  name: string;
-  type: string;
-  rating: number;
-  reviews: number;
-  deliveryTime: string;
-  distance: string;
-  image?: any;
-  placeholderColor: string;
-}
-
-const tiendas: Tienda[] = [
-  {
-    id: '1',
-    name: 'El Huerfanito',
-    type: 'Verdulería',
-    rating: 4.8,
-    reviews: 120,
-    deliveryTime: '15-25 min',
-    distance: '1.2 km',
-    placeholderColor: '#C8E6C9',
-  },
-  {
-    id: '2',
-    name: 'Panadería Doña Julia',
-    type: 'Panadería',
-    rating: 4.9,
-    reviews: 250,
-    deliveryTime: '20-30 min',
-    distance: '1.8 km',
-    placeholderColor: '#FFE0B2',
-  },
-];
+import {useTiendas} from '../hooks/useTiendas';
 
 const TiendasSection: React.FC = () => {
+  const {tiendas, loading, error, fetchTiendas} = useTiendas();
+
+  useEffect(() => {
+    fetchTiendas();
+  }, [fetchTiendas]);
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Tiendas Cerca de Ti</Text>
+
+      {loading && <Text style={styles.helperText}>Cargando tiendas...</Text>}
+      {error && <Text style={styles.errorText}>{error}</Text>}
+      {!loading && !error && tiendas.length === 0 && (
+        <Text style={styles.helperText}>No hay tiendas disponibles.</Text>
+      )}
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}>
-        {tiendas.map((tienda) => (
-          <TouchableOpacity key={tienda.id} style={styles.tiendaCard}>
-            {tienda.image ? (
-              <Image source={tienda.image} style={styles.tiendaImage} />
+        {tiendas.map((tienda, index) => (
+          <TouchableOpacity
+            key={tienda.id ?? `${tienda.nombre ?? 'tienda'}-${index}`}
+            style={styles.tiendaCard}>
+            {tienda.imagen_url ? (
+              <Image source={{uri: tienda.imagen_url}} style={styles.tiendaImage} />
             ) : (
-              <View style={[styles.tiendaImage, styles.tiendaImagePlaceholder, {backgroundColor: tienda.placeholderColor}]}>
-                <MaterialIcons 
-                  name={tienda.id === '1' ? 'store' : 'storefront'} 
-                  size={40} 
-                  color="#666666" 
-                />
+              <View style={[styles.tiendaImage, styles.tiendaImagePlaceholder]}>
+                <MaterialIcons name="storefront" size={40} color="#666666" />
               </View>
             )}
             <View style={styles.tiendaContent}>
-              <Text style={styles.tiendaName}>{tienda.name}</Text>
-              <Text style={styles.tiendaType}>{tienda.type}</Text>
+              <Text style={styles.tiendaName}>{tienda.nombre}</Text>
+              <Text style={styles.tiendaType}>{tienda.categoria ?? 'Tienda'}</Text>
               <View style={styles.tiendaRating}>
                 <MaterialIcons name="star" size={16} color="#FFC107" />
                 <Text style={styles.ratingText}>
-                  {tienda.rating} ({tienda.reviews})
+                  {tienda.rating ?? 'N/A'} ({tienda.reviews ?? 0})
                 </Text>
               </View>
               <Text style={styles.tiendaDelivery}>
-                {tienda.deliveryTime} • {tienda.distance}
+                {tienda.tiempoEntrega ?? '--'} • {tienda.distancia ?? '--'}
               </Text>
             </View>
           </TouchableOpacity>
@@ -88,6 +65,18 @@ const styles = StyleSheet.create({
     color: '#000000',
     marginBottom: 16,
   },
+  helperText: {
+    fontSize: 14,
+    color: '#757575',
+    marginBottom: 12,
+    paddingHorizontal: 16,
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#D32F2F',
+    marginBottom: 12,
+    paddingHorizontal: 16,
+  },
   scrollContent: {
     paddingBottom: 16,
   },
@@ -104,10 +93,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     marginBottom: 16,
+    padding: 12,
+    minHeight: 140,
   },
   tiendaImage: {
-    width: 100,
-    height: 100,
+    width: 110,
+    height: 110,
     resizeMode: 'cover',
   },
   tiendaImagePlaceholder: {
@@ -116,11 +107,11 @@ const styles = StyleSheet.create({
   },
   tiendaContent: {
     flex: 1,
-    padding: 12,
-    justifyContent: 'space-between',
+    paddingLeft: 12,
+    justifyContent: 'space-evenly',
   },
   tiendaName: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: 'bold',
     color: '#000000',
     marginBottom: 4,
