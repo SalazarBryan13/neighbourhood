@@ -107,8 +107,9 @@ const styles = StyleSheet.create({
   },
   tiendaContent: {
     flex: 1,
-    paddingLeft: 12,
+    paddingLeft: 1,
     justifyContent: 'space-evenly',
+    
   },
   tiendaName: {
     fontSize: 17,

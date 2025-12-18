@@ -12,9 +12,16 @@ const WelcomeScreen: React.FC = () => {
 
       <TouchableOpacity
         style={styles.button}
+        onPress={() => navigation.navigate("RoleSelection" as never)}
+      >
+        <Text style={styles.buttonText}>Registrarse</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.secondaryButton}
         onPress={() => navigation.navigate("Login" as never)}
       >
-        <Text style={styles.buttonText}>Iniciar sesión</Text>
+        <Text style={styles.secondaryButtonText}>Iniciar sesión</Text>
       </TouchableOpacity>
     </View>
   );
@@ -45,9 +52,24 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 25,
     borderRadius: 10,
+    marginBottom: 12,
+    width: "100%",
+    alignItems: "center",
   },
   buttonText: {
     color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  secondaryButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 10,
+    width: "100%",
+    alignItems: "center",
+  },
+  secondaryButtonText: {
+    color: "#4CAF50",
     fontSize: 18,
     fontWeight: "bold",
   },

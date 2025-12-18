@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { supabase } from "../lib/supabaseClient";
@@ -16,27 +17,60 @@ const LoginScreen: React.FC = () => {
   const navigation = useNavigation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
+    // Limpiar errores previos
+    setError(null);
+    
     if (!email || !password) {
-      Alert.alert("Error", "Por favor llena todos los campos");
+      const errorMsg = "Por favor llena todos los campos";
+      setError(errorMsg);
+      Alert.alert("Error", errorMsg);
       return;
     }
 
-    // Llamar a Supabase para validar el login
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: email,
-      password: password,
-    });
+    setLoading(true);
+    console.log("Intentando login con:", { email });
 
-    if (error) {
-      Alert.alert("Error al iniciar sesión", error.message);
-      return;
+    try {
+      // Llamar a Supabase para validar el login
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
+
+      console.log("Respuesta login:", { data, error });
+
+      if (error) {
+        let errorMessage = error.message;
+        
+        // Mensaje más claro si el email no está confirmado
+        if (error.message.includes("email") && (error.message.includes("confirm") || error.message.includes("verified"))) {
+          errorMessage = "Tu email no ha sido confirmado. Por favor verifica tu correo electrónico o contacta al administrador.";
+        } else if (error.message.includes("Invalid login")) {
+          errorMessage = "Correo o contraseña incorrectos. Por favor verifica tus credenciales.";
+        }
+        
+        setError(errorMessage);
+        Alert.alert("Error al iniciar sesión", errorMessage);
+        setLoading(false);
+        return;
+      }
+
+      console.log("Usuario logueado:", data.user);
+      setError(null);
+
+      navigation.navigate("Tabs" as never); // Ir al inicio después del login
+    } catch (err: any) {
+      console.error("Error catch en login:", err);
+      const errorMsg = `Error inesperado: ${err?.message || err?.toString() || "Ocurrió un error inesperado"}`;
+      setError(errorMsg);
+      Alert.alert("Error inesperado", errorMsg);
+    } finally {
+      setLoading(false);
     }
-
-    console.log("Usuario logueado:", data.user);
-
-    navigation.navigate("Tabs" as never); // Ir al inicio después del login
   };
 
   return (
@@ -59,8 +93,22 @@ const LoginScreen: React.FC = () => {
         style={styles.input}
       />
 
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Entrar</Text>
+      {error && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
+
+      <TouchableOpacity 
+        style={[styles.button, loading && styles.buttonDisabled]} 
+        onPress={handleLogin}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#FFFFFF" />
+        ) : (
+          <Text style={styles.buttonText}>Entrar</Text>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -103,5 +151,23 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: "#fff",
     fontWeight: "bold",
-  },
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  errorContainer: {
+    backgroundColor: "#FFEBEE",
+    borderColor: "#F44336",
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    marginTop: 8,
+    width: "100%",
+  },
+  errorText: {
+    color: "#D32F2F",
+    fontSize: 14,
+    textAlign: "center",
+  },
 });
