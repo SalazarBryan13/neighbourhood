@@ -22,9 +22,11 @@ export type Producto = {
 };
 
 /**
- * Hook para obtener productos, filtrados por categoría si se proporciona
+ * Hook para obtener productos.
+ * - Puede filtrar por categoría (`categoriaId`)
+ * - Puede filtrar por tienda (`tiendaId`) usando la relación inventario.id_tienda
  */
-export function useProductos(categoriaId?: number) {
+export function useProductos(categoriaId?: number, tiendaId?: number) {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +60,11 @@ export function useProductos(categoriaId?: number) {
       query = query.eq('id_categoria', categoriaId);
     }
 
+    if (tiendaId) {
+      // Filtrar por tienda usando la relación de inventario
+      query = query.eq('inventario.id_tienda', tiendaId);
+    }
+
     const { data, error: supaError } = await query.order('nombre', { ascending: true });
 
     if (supaError) {
@@ -68,7 +75,7 @@ export function useProductos(categoriaId?: number) {
 
     setProductos((data as Producto[]) ?? []);
     setLoading(false);
-  }, [categoriaId]);
+  }, [categoriaId, tiendaId]);
 
   return {
     productos,
@@ -77,4 +84,6 @@ export function useProductos(categoriaId?: number) {
     fetchProductos,
   };
 }
+
+
 

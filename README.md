@@ -2,6 +2,29 @@
 
 Aplicación móvil de catálogo de tiendas desarrollada con React Native y Expo. Permite a los usuarios explorar tiendas cercanas, ver ofertas, categorías y realizar pedidos.
 
+## ⚙️ Configuración Inicial
+
+### Variables de Entorno
+
+Antes de ejecutar la aplicación, necesitas configurar las variables de entorno de Supabase:
+
+1. **Crea un archivo `.env` en la raíz del proyecto `catalogo-expo/`:**
+
+```bash
+# Variables de entorno para Supabase
+EXPO_PUBLIC_SUPABASE_URL=tu_url_de_supabase_aqui
+EXPO_PUBLIC_SUPABASE_ANON_KEY=tu_clave_anon_de_supabase_aqui
+```
+
+2. **Obtén tus credenciales de Supabase:**
+   - Ve a tu proyecto en [Supabase Dashboard](https://app.supabase.com)
+   - Navega a **Settings** → **API**
+   - Copia la **URL** del proyecto y la **anon/public key**
+
+3. **Nota importante:** En Expo, las variables de entorno deben tener el prefijo `EXPO_PUBLIC_` para que sean accesibles en el código del cliente.
+
+---
+
 ## 🚀 Inicio Rápido
 
 ### 🌐 Opción 1: Ver en el Navegador Web (Recomendado para Desarrollo)
@@ -129,17 +152,43 @@ catalogo-expo/
 
 ## 🎨 Tecnologías Utilizadas
 
+### Dependencias Principales
+
 - **React Native 0.81.5** - Framework para desarrollo móvil multiplataforma
+- **React 19.1.0** - Biblioteca de UI
 - **Expo ~54.0.25** - Plataforma y herramientas de desarrollo
-- **React Navigation 7.x** - Navegación entre pantallas
-  - `@react-navigation/native`
-  - `@react-navigation/bottom-tabs`
 - **TypeScript 5.9.2** - Tipado estático para mayor seguridad
-- **Expo Vector Icons 15.0.3** - Iconos Material Design
-- **React Native Web 0.21.2** - Soporte para web
-- **React DOM 19.1.0** - Para renderizado web
-- **React Native Safe Area Context** - Manejo de áreas seguras
-- **React Native Screens** - Optimización de pantallas
+
+### Navegación
+
+- **@react-navigation/native ^7.1.22** - Navegación base
+- **@react-navigation/bottom-tabs ^7.8.7** - Navegación por tabs
+- **@react-navigation/native-stack ^7.8.1** - Navegación por stack
+- **react-native-safe-area-context ^5.6.2** - Manejo de áreas seguras
+- **react-native-screens ^4.18.0** - Optimización de pantallas
+
+### Backend y Base de Datos
+
+- **@supabase/supabase-js ^2.87.1** - Cliente de Supabase para autenticación y base de datos
+
+### UI y Componentes
+
+- **@expo/vector-icons ^15.0.3** - Iconos Material Design
+- **expo-status-bar ~3.0.8** - Barra de estado de Expo
+
+### Web Support
+
+- **react-dom ^19.1.0** - Para renderizado web
+- **react-native-web ^0.21.2** - Soporte para web
+
+### Instalación de Dependencias
+
+```bash
+cd catalogo-expo
+npm install
+```
+
+Todas las dependencias están listadas en `package.json`. Ejecuta `npm install` para instalar todas las dependencias necesarias.
 
 ---
 
@@ -196,16 +245,50 @@ Actualmente la aplicación usa **placeholders con iconos** para las imágenes. L
 
 ---
 
+## ✅ Funcionalidades Implementadas
+
+### Autenticación y Usuario
+- ✅ Registro de usuarios (Vecino/Tiendero)
+- ✅ Login con validación de email
+- ✅ Confirmación automática de email
+- ✅ Gestión de sesión
+
+### Productos y Catálogo
+- ✅ Visualización de categorías desde Supabase
+- ✅ Listado de productos por categoría
+- ✅ Detalle de producto con stock disponible
+- ✅ Búsqueda y filtrado de productos
+
+### Carrito de Compras
+- ✅ Agregar productos al carrito
+- ✅ Actualizar cantidades
+- ✅ Eliminar productos
+- ✅ Cálculo automático de totales
+- ✅ Validación de stock
+
+### Pedidos
+- ✅ Confirmación de pedidos
+- ✅ Selección de dirección de entrega
+- ✅ Historial de pedidos
+- ✅ Detalle de pedido con productos
+
+### Base de Datos
+- ✅ Esquema completo de base de datos
+- ✅ Tablas: usuario, tienda, inventario, producto, categoria, carrito, pedido, direcciones_usuario
+- ✅ Row Level Security (RLS) configurado
+- ✅ Relaciones y constraints implementadas
+
 ## 📚 Próximos Pasos
 
-- [ ] Implementar funcionalidad de búsqueda
-- [ ] Agregar filtros funcionales
-- [ ] Implementar pantalla de detalle de tienda
-- [ ] Agregar imágenes reales de ofertas y tiendas
-- [ ] Implementar pantalla de Pedidos
-- [ ] Implementar pantalla de Perfil
-- [ ] Conectar con API backend
-- [ ] Agregar autenticación de usuarios
+- [ ] Implementar funcionalidad de búsqueda avanzada
+- [ ] Agregar filtros funcionales (precio, distancia, etc.)
+- [ ] Implementar pantalla de Perfil completa
+- [ ] Implementar pantalla de Pedidos independiente
+- [ ] Gestión de direcciones (agregar/editar/eliminar)
+- [ ] Funcionalidad para Tiendero (gestión de productos, inventario, pedidos recibidos)
+- [ ] Agregar imágenes reales de productos y tiendas
+- [ ] Notificaciones push
+- [ ] Sistema de calificaciones y reseñas
 
 ---
 

@@ -1,21 +1,24 @@
 import { useCallback, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
+// Estructura real de la tabla `tienda` en Supabase
 export type Tienda = {
-  id: string;
-  nombre: string;
-  categoria?: string;
-  rating?: number;
-  reviews?: number;
+  id_tienda: number;
+  id_propietario: number;
+  nombre_tienda: string;
+  descripcion?: string | null;
+  telefono?: string | null;
+  direccion?: string | null;
+  estado: string;
+  imagen_url?: string | null;
+  // Campos opcionales solo para UI (no están en la tabla):
   tiempoEntrega?: string;
   distancia?: string;
-  imagen_url?: string;
+  rating?: number;
+  reviews?: number;
 };
 
-
-
-
-type NuevaTienda = Omit<Tienda, 'id' | 'created_at'>;
+type NuevaTienda = Omit<Tienda, 'id_tienda'>;
 type TiendaUpdate = Partial<NuevaTienda>;
 
 /**
@@ -37,7 +40,10 @@ export function useTiendas() {
     setError(null);
     const { data, error: supaError } = await supabase
       .from('tienda')
-      .select('*')
+      .select(
+        'id_tienda, id_propietario, nombre_tienda, descripcion, telefono, direccion, estado, imagen_url'
+      )
+      .order('nombre_tienda', { ascending: true });
 
     if (supaError) {
       handleError('No se pudieron obtener las tiendas', supaError);
@@ -53,9 +59,11 @@ export function useTiendas() {
     setLoading(true);
     setError(null);
     const { data, error: supaError } = await supabase
-      .from('tiendas')
-      .select('*')
-      .eq('id', id)
+      .from('tienda')
+      .select(
+        'id_tienda, id_propietario, nombre_tienda, descripcion, telefono, direccion, estado, imagen_url'
+      )
+      .eq('id_tienda', id)
       .single();
 
     if (supaError) {
@@ -72,9 +80,11 @@ export function useTiendas() {
     setLoading(true);
     setError(null);
     const { data, error: supaError } = await supabase
-      .from('tiendas')
+      .from('tienda')
       .insert(payload)
-      .select()
+      .select(
+        'id_tienda, id_propietario, nombre_tienda, descripcion, telefono, direccion, estado, imagen_url'
+      )
       .single();
 
     if (supaError) {
@@ -93,10 +103,12 @@ export function useTiendas() {
     setLoading(true);
     setError(null);
     const { data, error: supaError } = await supabase
-      .from('tiendas')
+      .from('tienda')
       .update(payload)
-      .eq('id', id)
-      .select()
+      .eq('id_tienda', id)
+      .select(
+        'id_tienda, id_propietario, nombre_tienda, descripcion, telefono, direccion, estado, imagen_url'
+      )
       .single();
 
     if (supaError) {
@@ -106,7 +118,9 @@ export function useTiendas() {
     }
 
     const updated = data as Tienda;
-    setTiendas((prev) => prev.map((t) => (t.id === id ? updated : t)));
+    setTiendas((prev) =>
+      prev.map((t) => (t.id_tienda === Number(id) ? updated : t))
+    );
     setLoading(false);
     return updated;
   }, []);
@@ -114,7 +128,7 @@ export function useTiendas() {
   const deleteTienda = useCallback(async (id: string) => {
     setLoading(true);
     setError(null);
-    const { error: supaError } = await supabase.from('tiendas').delete().eq('id', id);
+    const { error: supaError } = await supabase.from('tienda').delete().eq('id_tienda', id);
 
     if (supaError) {
       handleError('No se pudo eliminar la tienda', supaError);
@@ -122,7 +136,7 @@ export function useTiendas() {
       return false;
     }
 
-    setTiendas((prev) => prev.filter((t) => t.id !== id));
+    setTiendas((prev) => prev.filter((t) => t.id_tienda !== Number(id)));
     setLoading(false);
     return true;
   }, []);

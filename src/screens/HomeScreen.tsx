@@ -15,10 +15,17 @@ import OfertasSection from '../components/OfertasSection';
 import CategoriasSection from '../components/CategoriasSection';
 import TiendasSection from '../components/TiendasSection';
 import { useCarrito } from '../hooks/useCarrito';
+import { useDirecciones } from '../hooks/useDirecciones';
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation();
   const { cantidadItems } = useCarrito();
+   const { direcciones, loading: loadingDirecciones } = useDirecciones();
+
+  const direccionPrincipal =
+    loadingDirecciones
+      ? 'Cargando dirección...'
+      : direcciones[0]?.direccion ?? 'Agrega una dirección en tu perfil';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -30,7 +37,7 @@ const HomeScreen: React.FC = () => {
           <View style={styles.locationContainer}>
             <MaterialIcons name="location-on" size={20} color="#000000" />
             <Text style={styles.locationText}>
-              Entregar en: Av. Siempreviva 742
+              Entregar en: {direccionPrincipal}
             </Text>
           </View>
           <View style={styles.headerIcons}>
