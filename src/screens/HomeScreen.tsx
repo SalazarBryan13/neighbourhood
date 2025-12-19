@@ -10,11 +10,16 @@ import {
   SafeAreaView,
 } from 'react-native';
 import {MaterialIcons} from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import OfertasSection from '../components/OfertasSection';
 import CategoriasSection from '../components/CategoriasSection';
 import TiendasSection from '../components/TiendasSection';
+import { useCarrito } from '../hooks/useCarrito';
 
 const HomeScreen: React.FC = () => {
+  const navigation = useNavigation();
+  const { cantidadItems } = useCarrito();
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -28,9 +33,24 @@ const HomeScreen: React.FC = () => {
               Entregar en: Av. Siempreviva 742
             </Text>
           </View>
-          <TouchableOpacity>
-            <MaterialIcons name="notifications" size={24} color="#000000" />
-          </TouchableOpacity>
+          <View style={styles.headerIcons}>
+            <TouchableOpacity
+              style={styles.carritoButton}
+              onPress={() => (navigation as any).navigate('Carrito')}
+            >
+              <MaterialIcons name="shopping-cart" size={24} color="#000000" />
+              {cantidadItems > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {cantidadItems > 99 ? '99+' : cantidadItems}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity>
+              <MaterialIcons name="notifications" size={24} color="#000000" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Barra de Búsqueda */}
@@ -100,6 +120,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#000000',
     marginLeft: 4,
+  },
+  headerIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  carritoButton: {
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: '#F44336',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   searchContainer: {
     flexDirection: 'row',

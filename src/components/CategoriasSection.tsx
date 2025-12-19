@@ -1,47 +1,78 @@
 import React from 'react';
-import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, ActivityIndicator} from 'react-native';
 import {MaterialIcons} from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { useCategorias } from '../hooks/useCategorias';
 
-interface Categoria {
-  id: string;
-  name: string;
-  icon: any;
-}
-
-const categorias: Categoria[] = [
-  {
-    id: '1',
-    name: 'Frutas y Verduras',
-    icon: 'local-florist',
-  },
-  {
-    id: '2',
-    name: 'Panadería',
-    icon: 'cake',
-  },
-  {
-    id: '3',
-    name: 'Carnicería',
-    icon: 'restaurant',
-  },
-  {
-    id: '4',
-    name: 'Abarrotes',
-    icon: 'storefront',
-  },
-];
+// Mapeo de iconos por nombre de categoría
+const getIconForCategoria = (nombre: string): keyof typeof MaterialIcons.glyphMap => {
+  const nombreLower = nombre.toLowerCase();
+  if (nombreLower.includes('fruta') || nombreLower.includes('verdura')) {
+    return 'local-florist';
+  }
+  if (nombreLower.includes('pan') || nombreLower.includes('panadería')) {
+    return 'cake';
+  }
+  if (nombreLower.includes('carne') || nombreLower.includes('carnicería')) {
+    return 'restaurant';
+  }
+  if (nombreLower.includes('abarrote')) {
+    return 'storefront';
+  }
+  return 'category'; // Icono por defecto
+};
 
 const CategoriasSection: React.FC = () => {
+  const navigation = useNavigation();
+  const { categorias, loading, error } = useCategorias();
+
+  const handleCategoriaPress = (categoriaId: number, categoriaNombre: string) => {
+    (navigation as any).navigate('ProductosPorCategoria', {
+      categoriaId,
+      categoriaNombre,
+    });
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Explora por Categorías</Text>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color="#4CAF50" />
+        </View>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Explora por Categorías</Text>
+        <Text style={styles.errorText}>Error al cargar categorías</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Explora por Categorías</Text>
       <View style={styles.categoriasGrid}>
         {categorias.map((categoria) => (
-          <TouchableOpacity key={categoria.id} style={styles.categoriaItem}>
+          <TouchableOpacity
+            key={categoria.id_categoria}
+            style={styles.categoriaItem}
+            onPress={() => handleCategoriaPress(categoria.id_categoria, categoria.nombre)}
+          >
             <View style={styles.categoriaIcon}>
-              <MaterialIcons name={categoria.icon} size={32} color="#4CAF50" />
+              <MaterialIcons
+                name={getIconForCategoria(categoria.nombre)}
+                size={32}
+                color="#4CAF50"
+              />
             </View>
-            <Text style={styles.categoriaName}>{categoria.name}</Text>
+            <Text style={styles.categoriaName} numberOfLines={2}>
+              {categoria.nombre}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -84,6 +115,15 @@ const styles = StyleSheet.create({
     color: '#000000',
     textAlign: 'center',
     fontWeight: '500',
+  },
+  loadingContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  errorText: {
+    color: '#F44336',
+    textAlign: 'center',
+    paddingVertical: 20,
   },
 });
 

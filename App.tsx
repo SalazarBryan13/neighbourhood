@@ -11,6 +11,10 @@ import WelcomeScreen from './src/screens/WelcomeScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import RoleSelectionScreen from './src/screens/RoleSelectionScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
+import ProductosPorCategoriaScreen from './src/screens/ProductosPorCategoriaScreen';
+import CarritoScreen from './src/screens/CarritoScreen';
+import ProductoDetalleScreen from './src/screens/ProductoDetalleScreen';
+import DetallePedidoScreen from './src/screens/DetallePedidoScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -68,6 +72,18 @@ export default function App() {
 
         {/* Navegación principal */}
         <Stack.Screen name="Tabs" component={TabNavigator} />
+        
+        {/* Pantalla de productos por categoría */}
+        <Stack.Screen name="ProductosPorCategoria" component={ProductosPorCategoriaScreen} />
+        
+        {/* Pantalla de detalle del producto */}
+        <Stack.Screen name="ProductoDetalle" component={ProductoDetalleScreen} />
+        
+        {/* Pantalla de carrito */}
+        <Stack.Screen name="Carrito" component={CarritoScreen} />
+        
+        {/* Pantalla de detalle del pedido */}
+        <Stack.Screen name="DetallePedido" component={DetallePedidoScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
