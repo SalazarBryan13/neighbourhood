@@ -19,7 +19,7 @@ const RoleSelectionScreen: React.FC = () => {
     if (!selectedRole) {
       return;
     }
-    navigation.navigate("Register" as never, { role: selectedRole } as never);
+    (navigation as any).navigate("Register", { role: selectedRole });
   };
 
   return (
@@ -88,12 +88,14 @@ const RoleSelectionScreen: React.FC = () => {
           <Text style={styles.continueButtonText}>Continuar</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.learnMoreLink}>
-          <Text style={styles.learnMoreText}>
-            ¿No estás seguro?{" "}
-            <Text style={styles.learnMoreLinkText}>Aprende más</Text>
-          </Text>
-        </TouchableOpacity>
+        <TouchableOpacity
+              style={styles.volverLink}
+              onPress={() => navigation.navigate("Welcome" as never)}
+            >
+              <Text style={styles.volverLinkText}>
+                Volver
+              </Text>
+            </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -184,5 +186,13 @@ const styles = StyleSheet.create({
   learnMoreLinkText: {
     textDecorationLine: "underline",
   },
+  volverLink: {
+    alignItems: "center",
+  },
+  volverLinkText: {
+    fontSize: 14,
+    color: "#2E7D32",
+  },
 });
+
 

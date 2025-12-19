@@ -110,6 +110,14 @@ const LoginScreen: React.FC = () => {
           <Text style={styles.buttonText}>Entrar</Text>
         )}
       </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.registerLink}
+        onPress={() => navigation.navigate("RoleSelection" as never)}
+      >
+        <Text style={styles.registerLinkText}>
+          ¿No tienes cuenta? Regístrate
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -169,5 +177,14 @@ const styles = StyleSheet.create({
     color: "#D32F2F",
     fontSize: 14,
     textAlign: "center",
+  },
+  registerLink: {
+    marginTop: 24,
+    alignItems: "center",
+  },
+  registerLinkText: {
+    fontSize: 14,
+    color: "#4CAF50",
+    textDecorationLine: "underline",
   },
 });
