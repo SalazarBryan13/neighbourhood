@@ -31,7 +31,19 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
+.env.*
 .env*.local
+# VSCode config
+.vscode/
+# API keys y archivos sensibles
+*.key
+*.pem
+*.secret
+# SQLite
+*.sqlite
+# Coverage
+coverage/
 
 # typescript
 *.tsbuildinfo
