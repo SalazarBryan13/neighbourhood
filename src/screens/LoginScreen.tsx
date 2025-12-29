@@ -35,15 +35,15 @@ const LoginScreen: React.FC = () => {
     console.log("Intentando login con:", { email });
 
     try {
-      // Llamar a Supabase para validar el login
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password,
-      });
+    // Llamar a Supabase para validar el login
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email,
+      password: password,
+    });
 
       console.log("Respuesta login:", { data, error });
 
-      if (error) {
+    if (error) {
         let errorMessage = error.message;
         
         // Mensaje más claro si el email no está confirmado
@@ -56,13 +56,17 @@ const LoginScreen: React.FC = () => {
         setError(errorMessage);
         Alert.alert("Error al iniciar sesión", errorMessage);
         setLoading(false);
-        return;
-      }
+      return;
+    }
 
-      console.log("Usuario logueado:", data.user);
+    console.log("Usuario logueado:", data.user);
       setError(null);
 
-      navigation.navigate("Tabs" as never); // Ir al inicio después del login
+    // Esperar un momento para que el listener de auth state change se active
+    // y el perfil se cargue antes de navegar
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    navigation.navigate("Tabs" as never); // Ir al inicio después del login
     } catch (err: any) {
       console.error("Error catch en login:", err);
       const errorMsg = `Error inesperado: ${err?.message || err?.toString() || "Ocurrió un error inesperado"}`;
@@ -107,7 +111,7 @@ const LoginScreen: React.FC = () => {
         {loading ? (
           <ActivityIndicator color="#FFFFFF" />
         ) : (
-          <Text style={styles.buttonText}>Entrar</Text>
+        <Text style={styles.buttonText}>Entrar</Text>
         )}
       </TouchableOpacity>
       <TouchableOpacity
@@ -159,7 +163,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: "#fff",
     fontWeight: "bold",
-  },
+  },
   buttonDisabled: {
     opacity: 0.6,
   },

@@ -1,47 +1,51 @@
-import { useCallback, useState, useEffect } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { useCallback, useState } from 'react';
+import { apiClient } from '../lib/apiClient';
 
 export type Categoria = {
   id_categoria: number;
+  id_tienda: number;
   nombre: string;
   descripcion?: string;
 };
 
 /**
- * Hook para obtener categorías de la tabla categoria
+ * Hook para obtener categorías de una tienda específica
+ * @param tiendaId - ID de la tienda para obtener sus categorías (requerido)
  */
-export function useCategorias() {
+export function useCategorias(tiendaId?: number) {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleError = (message: string, err: unknown) => {
     console.error(message, err);
-    setError(message);
+    setError(err instanceof Error ? err.message : message);
   };
 
   const fetchCategorias = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    
-    const { data, error: supaError } = await supabase
-      .from('categoria')
-      .select('*')
-      .order('nombre', { ascending: true });
-
-    if (supaError) {
-      handleError('No se pudieron obtener las categorías', supaError);
-      setLoading(false);
+    if (!tiendaId) {
+      console.warn('⚠️ No se proporcionó tiendaId, no se pueden obtener categorías');
+      setCategorias([]);
       return;
     }
 
-    setCategorias((data as Categoria[]) ?? []);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    fetchCategorias();
-  }, [fetchCategorias]);
+    setLoading(true);
+    setError(null);
+    
+    try {
+      console.log('🔄 Obteniendo categorías para tienda:', tiendaId);
+      // Usar el endpoint de la API que filtra por tienda
+      const data = await apiClient.get<Categoria[]>(`/categorias/${tiendaId}`);
+      console.log('✅ Categorías obtenidas:', data?.length || 0, 'categorías');
+      setCategorias((data || []).sort((a, b) => a.nombre.localeCompare(b.nombre)));
+    } catch (err) {
+      console.error('❌ Error obteniendo categorías:', err);
+      handleError('No se pudieron obtener las categorías', err);
+      setCategorias([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [tiendaId]);
 
   return {
     categorias,
@@ -50,6 +54,12 @@ export function useCategorias() {
     refetch: fetchCategorias,
   };
 }
+
+
+
+
+
+
 
 
 

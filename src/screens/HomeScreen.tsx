@@ -46,17 +46,17 @@ const HomeScreen: React.FC = () => {
               onPress={() => (navigation as any).navigate('Carrito')}
             >
               <MaterialIcons name="shopping-cart" size={24} color="#000000" />
-              {cantidadItems > 0 && (
+              {cantidadItems && cantidadItems > 0 ? (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
                     {cantidadItems > 99 ? '99+' : cantidadItems}
                   </Text>
                 </View>
-              )}
+              ) : null}
             </TouchableOpacity>
-            <TouchableOpacity>
-              <MaterialIcons name="notifications" size={24} color="#000000" />
-            </TouchableOpacity>
+          <TouchableOpacity>
+            <MaterialIcons name="notifications" size={24} color="#000000" />
+          </TouchableOpacity>
           </View>
         </View>
 

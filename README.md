@@ -14,6 +14,9 @@ Antes de ejecutar la aplicación, necesitas configurar las variables de entorno 
 # Variables de entorno para Supabase
 EXPO_PUBLIC_SUPABASE_URL=tu_url_de_supabase_aqui
 EXPO_PUBLIC_SUPABASE_ANON_KEY=tu_clave_anon_de_supabase_aqui
+
+# Variable de entorno para API FastAPI (solo para tienderos)
+EXPO_PUBLIC_API_URL=http://localhost:8000
 ```
 
 2. **Obtén tus credenciales de Supabase:**

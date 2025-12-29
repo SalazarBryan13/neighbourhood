@@ -2,12 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
 export type UsuarioPerfil = {
-  id: string; // uuid que referencia a auth.users.id
   id_usuario: number;
   nombre: string;
   apellido: string;
   telefono?: string | null;
   rol?: string | null;
+  id_propietario: string | null; // uuid que referencia a auth.users.id
 };
 
 export function usePerfilUsuario() {
@@ -44,12 +44,19 @@ export function usePerfilUsuario() {
       const { data, error: perfilError } = await supabase
         .from('usuario')
         .select('*')
-        .eq('id', user.id)
-        .single();
+        .eq('id_propietario', user.id)
+        .maybeSingle();
 
       if (perfilError) {
         console.error('Error obteniendo perfil:', perfilError);
         setError('No se pudo obtener tu perfil.');
+        setLoading(false);
+        return;
+      }
+
+      if (!data) {
+        console.warn('No se encontró registro de usuario con id_propietario:', user.id);
+        setError('No se encontró tu perfil de usuario.');
         setLoading(false);
         return;
       }
@@ -65,6 +72,27 @@ export function usePerfilUsuario() {
 
   useEffect(() => {
     cargarPerfil();
+
+    // Escuchar cambios en el estado de autenticación
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('🔐 Auth state changed:', event, session?.user?.email);
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        // Recargar perfil cuando el usuario inicia sesión o se refresca el token
+        cargarPerfil();
+      } else if (event === 'SIGNED_OUT') {
+        // Limpiar perfil cuando el usuario cierra sesión
+        setPerfil(null);
+        setEmail('');
+        setError(null);
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [cargarPerfil]);
 
   const actualizarPerfil = useCallback(
@@ -78,7 +106,7 @@ export function usePerfilUsuario() {
         console.log('📝 Actualizando perfil con:', {
           payload,
           id_usuario: perfil.id_usuario,
-          id: perfil.id,
+          id_propietario: perfil.id_propietario,
         });
 
         const { error: updateError } = await supabase
@@ -88,9 +116,8 @@ export function usePerfilUsuario() {
             apellido: payload.apellido.trim(),
             telefono: payload.telefono.trim(),
           })
-          // usamos la FK uuid 'id' que referencia a auth.users.id
-          // coincide con el usuario autenticado y con tus políticas RLS
-          .eq('id', perfil.id);
+          // usamos id_usuario como clave primaria para la actualización
+          .eq('id_usuario', perfil.id_usuario);
 
         if (updateError) {
           console.error('Error actualizando perfil:', updateError);

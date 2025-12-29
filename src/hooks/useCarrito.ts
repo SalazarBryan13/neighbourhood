@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 export type ItemCarrito = {
   id_carrito: number;
   id_pedido: number | null;
-  id_usuario: number;
+  id_usuario: string; // UUID, no número
   id_producto: number;
   cantidad: number;
   precio_unitario: number;
@@ -33,62 +33,55 @@ export function useCarrito() {
   const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [usuarioId, setUsuarioId] = useState<number | null>(null);
+  const [usuarioUuid, setUsuarioUuid] = useState<string | null>(null);
 
   const handleError = (message: string, err: unknown) => {
     console.error(message, err);
     setError(message);
   };
 
-  // Obtener el ID del usuario desde auth
-  const getUsuarioId = useCallback(async () => {
+  // Obtener el UUID del usuario desde auth
+  // carrito.id_usuario referencia a usuario.id_propietario (UUID), no a usuario.id_usuario (número)
+  const getUsuarioUuid = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
-
-    // Obtener id_usuario desde la tabla usuario
-    const { data, error } = await supabase
+    
+    // Verificar que existe el usuario en la tabla usuario con ese id_propietario
+    // carrito.id_usuario debe coincidir con usuario.id_propietario (UUID)
+    const { data: usuarioData, error } = await supabase
       .from('usuario')
-      .select('id_usuario')
-      .eq('id', user.id)
-      .single();
+      .select('id_propietario')
+      .eq('id_propietario', user.id)
+      .maybeSingle();
 
-    if (error || !data) {
-      console.error('Error obteniendo id_usuario:', error);
+    if (error) {
+      console.error('Error verificando usuario:', error);
       return null;
     }
 
-    return data.id_usuario;
+    if (!usuarioData) {
+      console.warn('No se encontró registro de usuario con id_propietario:', user.id);
+      return null;
+    }
+
+    // Retornar el UUID (id_propietario) que es lo que usa carrito.id_usuario
+    // carrito.id_usuario = usuario.id_propietario (UUID)
+    return user.id;
   }, []);
 
   // Obtener el carrito del usuario (id_pedido IS NULL)
-  const fetchCarrito = useCallback(async (overrideUsuarioId?: number) => {
-    const idToUse = overrideUsuarioId ?? usuarioId;
-    if (!idToUse) return;
+  const fetchCarrito = useCallback(async (overrideUsuarioUuid?: string) => {
+    const uuidToUse = overrideUsuarioUuid ?? usuarioUuid;
+    if (!uuidToUse) return;
 
     setLoading(true);
     setError(null);
 
-    const { data, error: supaError } = await supabase
+    // Primero obtener los items del carrito sin relaciones
+    const { data: carritoData, error: supaError } = await supabase
       .from('carrito')
-      .select(`
-        *,
-        producto:producto(
-          id_producto,
-          nombre,
-          descripcion,
-          imagen_url,
-          precio,
-          id_inventario,
-          inventario:inventario(
-            id_tienda,
-            tienda:tienda(
-              id_tienda,
-              nombre_tienda
-            )
-          )
-        )
-      `)
-      .eq('id_usuario', idToUse)
+      .select('*')
+      .eq('id_usuario', uuidToUse)
       .is('id_pedido', null)
       .order('id_carrito', { ascending: false });
 
@@ -98,9 +91,72 @@ export function useCarrito() {
       return;
     }
 
+    if (!carritoData || carritoData.length === 0) {
+      setCarrito([]);
+      setLoading(false);
+      return;
+    }
+
+    // Obtener los productos relacionados
+    const productoIds = [...new Set(carritoData.map(item => item.id_producto))];
+    const { data: productosData } = await supabase
+      .from('producto')
+      .select('id_producto, nombre, descripcion, imagen_url, precio, id_inventario')
+      .in('id_producto', productoIds);
+
+    // Obtener inventarios relacionados
+    const inventarioIds = [...new Set((productosData || []).map(p => p.id_inventario).filter(Boolean))];
+    let inventariosData: any[] = [];
+    let tiendasData: any[] = [];
+
+    if (inventarioIds.length > 0) {
+      const { data: invData } = await supabase
+        .from('inventario')
+        .select('id_inventario, id_tienda')
+        .in('id_inventario', inventarioIds);
+
+      inventariosData = invData || [];
+
+      // Obtener tiendas relacionadas
+      const tiendaIds = [...new Set(inventariosData.map(inv => inv.id_tienda).filter(Boolean))];
+      if (tiendaIds.length > 0) {
+        const { data: tiendaData } = await supabase
+          .from('tienda')
+          .select('id_tienda, nombre_tienda')
+          .in('id_tienda', tiendaIds);
+
+        tiendasData = tiendaData || [];
+      }
+    }
+
+    // Construir mapas para acceso rápido
+    const productosMap = new Map((productosData || []).map(p => [p.id_producto, p]));
+    const inventariosMap = new Map(inventariosData.map(inv => [inv.id_inventario, inv]));
+    const tiendasMap = new Map(tiendasData.map(t => [t.id_tienda, t]));
+
+    // Combinar los datos
+    const data = carritoData.map(item => {
+      const producto = productosMap.get(item.id_producto);
+      if (!producto) return item;
+
+      const inventario = producto.id_inventario ? inventariosMap.get(producto.id_inventario) : null;
+      const tienda = inventario?.id_tienda ? tiendasMap.get(inventario.id_tienda) : null;
+
+      return {
+        ...item,
+        producto: {
+          ...producto,
+          inventario: inventario ? {
+            ...inventario,
+            tienda: tienda || undefined,
+          } : undefined,
+        },
+      };
+    });
+
     setCarrito((data as ItemCarrito[]) ?? []);
     setLoading(false);
-  }, [usuarioId]);
+  }, [usuarioUuid]);
 
   // Agregar producto al carrito
   const agregarAlCarrito = useCallback(async (
@@ -111,27 +167,34 @@ export function useCarrito() {
     setLoading(true);
     setError(null);
 
-    // Asegurar que tenemos el usuarioId
-    let currentUsuarioId = usuarioId;
-    if (!currentUsuarioId) {
-      const id = await getUsuarioId();
-      if (!id) {
+    // Asegurar que tenemos el usuarioUuid
+    let currentUsuarioUuid = usuarioUuid;
+    if (!currentUsuarioUuid) {
+      const uuid = await getUsuarioUuid();
+      if (!uuid) {
         handleError('No se pudo obtener el usuario', null);
         setLoading(false);
         return false;
       }
-      setUsuarioId(id);
-      currentUsuarioId = id;
+      setUsuarioUuid(uuid);
+      currentUsuarioUuid = uuid;
     }
 
     // Verificar si el producto ya está en el carrito
-    const { data: existingItem } = await supabase
+    const { data: existingItem, error: checkError } = await supabase
       .from('carrito')
       .select('*')
-      .eq('id_usuario', currentUsuarioId)
+      .eq('id_usuario', currentUsuarioUuid)
       .eq('id_producto', idProducto)
       .is('id_pedido', null)
       .maybeSingle();
+
+    if (checkError) {
+      console.error('Error verificando carrito:', checkError);
+      handleError('No se pudo verificar el carrito', checkError);
+      setLoading(false);
+      return false;
+    }
 
     if (existingItem) {
       // Actualizar cantidad si ya existe
@@ -159,7 +222,7 @@ export function useCarrito() {
       const { error: insertError } = await supabase
         .from('carrito')
         .insert({
-          id_usuario: currentUsuarioId,
+          id_usuario: currentUsuarioUuid,
           id_producto: idProducto,
           cantidad: cantidad,
           precio_unitario: precioUnitario,
@@ -175,16 +238,16 @@ export function useCarrito() {
     }
 
     // Refrescar el carrito después de agregar
-    if (currentUsuarioId) {
-      // Si el usuarioId cambió, actualizar el estado primero
-      if (currentUsuarioId !== usuarioId) {
-        setUsuarioId(currentUsuarioId);
+    if (currentUsuarioUuid) {
+      // Si el usuarioUuid cambió, actualizar el estado primero
+      if (currentUsuarioUuid !== usuarioUuid) {
+        setUsuarioUuid(currentUsuarioUuid);
       }
-      await fetchCarrito(currentUsuarioId);
+      await fetchCarrito(currentUsuarioUuid);
     }
     setLoading(false);
     return true;
-  }, [usuarioId, getUsuarioId, fetchCarrito]);
+  }, [usuarioUuid, getUsuarioUuid, fetchCarrito]);
 
   // Actualizar cantidad de un item
   const actualizarCantidad = useCallback(async (
@@ -264,19 +327,19 @@ export function useCarrito() {
 
   // Inicializar usuario al montar
   useEffect(() => {
-    getUsuarioId().then(id => {
-      if (id) {
-        setUsuarioId(id);
+    getUsuarioUuid().then(uuid => {
+      if (uuid) {
+        setUsuarioUuid(uuid);
       }
     });
-  }, [getUsuarioId]);
+  }, [getUsuarioUuid]);
 
   // Cargar carrito cuando se obtiene el usuario
   useEffect(() => {
-    if (usuarioId) {
+    if (usuarioUuid) {
       fetchCarrito();
     }
-  }, [usuarioId, fetchCarrito]);
+  }, [usuarioUuid, fetchCarrito]);
 
   return {
     carrito,

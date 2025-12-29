@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 
 export type Pedido = {
   id_pedido: number;
-  id_usuario: number;
+  id_usuario: string; // UUID, no número - referencia a usuario.id_propietario
   id_tienda: number;
   id_direccion: number;
   estado: string;
@@ -32,24 +32,40 @@ export function usePedidos() {
     setError(message);
   };
 
-  // Obtener el ID del usuario desde auth
-  const getUsuarioId = useCallback(async () => {
+  // Obtener el UUID del usuario desde auth
+  // Para carrito: carrito.id_usuario es UUID que referencia a usuario.id_propietario
+  // Para pedido: pedido.id_usuario es UUID que referencia a usuario.id_propietario
+  const getUsuarioUuid = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
-
-    const { data, error } = await supabase
+    if (!user) {
+      console.error('❌ No hay usuario autenticado');
+      return null;
+    }
+    
+    // Verificar que existe el usuario en la tabla usuario
+    const { data: usuarioData, error } = await supabase
       .from('usuario')
-      .select('id_usuario')
-      .eq('id', user.id)
-      .single();
+      .select('id_propietario')
+      .eq('id_propietario', user.id)
+      .maybeSingle();
 
-    if (error || !data) {
-      console.error('Error obteniendo id_usuario:', error);
+    if (error) {
+      console.error('Error verificando usuario:', error);
       return null;
     }
 
-    return data.id_usuario;
+    if (!usuarioData) {
+      console.warn('No se encontró registro de usuario con id_propietario:', user.id);
+      return null;
+    }
+
+    console.log('✅ UUID obtenido para carrito:', user.id);
+    // Retornar el UUID (id_propietario) que es lo que usa carrito.id_usuario
+    return user.id;
   }, []);
+
+  // Ya no necesitamos getUsuarioId porque pedido.id_usuario también es UUID
+  // Se eliminó esta función porque pedido.id_usuario es UUID que referencia a usuario.id_propietario
 
   // Crear pedido desde el carrito
   const crearPedido = useCallback(async (
@@ -61,22 +77,37 @@ export function usePedidos() {
     setError(null);
 
     try {
-      const usuarioId = await getUsuarioId();
-      if (!usuarioId) {
-        const errorMsg = 'No se pudo obtener el usuario';
+      // Obtener UUID del usuario (para carrito y pedido)
+      // Tanto carrito.id_usuario como pedido.id_usuario son UUID que referencia a usuario.id_propietario
+      const usuarioUuid = await getUsuarioUuid();
+      if (!usuarioUuid) {
+        const errorMsg = 'No se pudo obtener el UUID del usuario';
         console.error(errorMsg);
         handleError(errorMsg, null);
         setLoading(false);
         return null;
       }
 
-      console.log('Creando pedido para usuario:', usuarioId, 'tienda:', idTienda, 'dirección:', idDireccion);
+      console.log('Creando pedido para usuario (UUID):', usuarioUuid, 'tienda:', idTienda, 'dirección:', idDireccion);
 
-      // Obtener items del carrito
+      console.log('🔑 UUID del usuario para carrito:', usuarioUuid);
+      console.log('🔑 Tipo de usuarioUuid:', typeof usuarioUuid);
+      console.log('🔑 usuarioUuid es string?', typeof usuarioUuid === 'string');
+      console.log('🔑 usuarioUuid tiene formato UUID?', /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(usuarioUuid || ''));
+
+      // Validar que usuarioUuid es un UUID válido
+      if (!usuarioUuid || typeof usuarioUuid !== 'string') {
+        const errorMsg = 'El UUID del usuario no es válido';
+        console.error(errorMsg, { usuarioUuid, tipo: typeof usuarioUuid });
+        handleError(errorMsg, null);
+        setLoading(false);
+        return null;
+      }
+
       const { data: itemsCarrito, error: carritoError } = await supabase
         .from('carrito')
         .select('*')
-        .eq('id_usuario', usuarioId)
+        .eq('id_usuario', usuarioUuid)
         .is('id_pedido', null);
 
       if (carritoError) {
@@ -102,8 +133,9 @@ export function usePedidos() {
       console.log('Total calculado:', total);
 
       // Crear pedido
+      // pedido.id_usuario es UUID que referencia a usuario.id_propietario
       const pedidoData: any = {
-        id_usuario: usuarioId,
+        id_usuario: usuarioUuid, // Usar UUID, no número
         id_tienda: idTienda,
         id_direccion: idDireccion,
         total: total,
@@ -167,10 +199,11 @@ export function usePedidos() {
       console.log('Pedido creado exitosamente:', pedido.id_pedido);
 
       // Actualizar items del carrito con id_pedido
+      // Usar el UUID para actualizar el carrito
       const { error: updateError } = await supabase
         .from('carrito')
         .update({ id_pedido: pedido.id_pedido })
-        .eq('id_usuario', usuarioId)
+        .eq('id_usuario', usuarioUuid)
         .is('id_pedido', null);
 
       if (updateError) {
@@ -199,33 +232,69 @@ export function usePedidos() {
       setLoading(false);
       return null;
     }
-  }, [getUsuarioId]);
+  }, [getUsuarioUuid]);
 
   // Obtener pedidos del usuario
   const obtenerPedidos = useCallback(async () => {
     setLoading(true);
     setError(null);
 
-    const usuarioId = await getUsuarioId();
-    if (!usuarioId) {
+    // pedido.id_usuario es UUID que referencia a usuario.id_propietario
+    const usuarioUuid = await getUsuarioUuid();
+    if (!usuarioUuid) {
       handleError('No se pudo obtener el usuario', null);
       setLoading(false);
       return [];
     }
 
-    const { data, error: supaError } = await supabase
+    // Obtener pedidos sin relaciones primero
+    const { data: pedidosData, error: supaError } = await supabase
       .from('pedido')
-      .select(`
-        *,
-        tienda:tienda(
-          nombre_tienda
-        ),
-        direccion:direcciones_usuario(
-          direccion
-        )
-      `)
-      .eq('id_usuario', usuarioId)
+      .select('*')
+      .eq('id_usuario', usuarioUuid)
       .order('fecha_pedido', { ascending: false });
+
+    if (supaError) {
+      handleError('No se pudieron obtener los pedidos', supaError);
+      setLoading(false);
+      return [];
+    }
+
+    if (!pedidosData || pedidosData.length === 0) {
+      setLoading(false);
+      return [];
+    }
+
+    // Obtener tiendas relacionadas
+    const tiendaIds = [...new Set(pedidosData.map(p => p.id_tienda).filter(Boolean))];
+    let tiendasMap = new Map();
+    if (tiendaIds.length > 0) {
+      const { data: tiendasData } = await supabase
+        .from('tienda')
+        .select('id_tienda, nombre_tienda')
+        .in('id_tienda', tiendaIds);
+      
+      tiendasMap = new Map((tiendasData || []).map(t => [t.id_tienda, t]));
+    }
+
+    // Obtener direcciones relacionadas
+    const direccionIds = [...new Set(pedidosData.map(p => p.id_direccion).filter(Boolean))];
+    let direccionesMap = new Map();
+    if (direccionIds.length > 0) {
+      const { data: direccionesData } = await supabase
+        .from('direcciones_usuario')
+        .select('id_direccion, direccion')
+        .in('id_direccion', direccionIds);
+      
+      direccionesMap = new Map((direccionesData || []).map(d => [d.id_direccion, d]));
+    }
+
+    // Combinar los datos
+    const data = pedidosData.map(pedido => ({
+      ...pedido,
+      tienda: tiendasMap.get(pedido.id_tienda) || undefined,
+      direccion: direccionesMap.get(pedido.id_direccion) || undefined,
+    }));
 
     if (supaError) {
       handleError('No se pudieron obtener los pedidos', supaError);
@@ -235,7 +304,7 @@ export function usePedidos() {
 
     setLoading(false);
     return (data as Pedido[]) ?? [];
-  }, [getUsuarioId]);
+  }, [getUsuarioUuid]);
 
   // Obtener productos de un pedido
   const obtenerProductosPedido = useCallback(async (idPedido: number) => {

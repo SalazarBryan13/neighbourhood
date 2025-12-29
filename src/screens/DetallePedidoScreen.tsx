@@ -388,3 +388,15 @@ export default DetallePedidoScreen;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+

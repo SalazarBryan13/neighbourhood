@@ -116,12 +116,16 @@ const RegisterScreen: React.FC = () => {
         return;
       }
 
+      // Obtener el usuario final (puede ser del signUp o del login automático)
+      let usuarioFinal = authData.user;
+      let userIdFinal = authData.user?.id;
+
       // Verificar si se requiere confirmación de email
       if (authData.user && !authData.session) {
         console.log("Usuario creado pero requiere confirmación de email");
         console.log("Esperando confirmación automática del email...");
-        // Esperar un momento para que el trigger confirme el email
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Esperar un momento para que el usuario se cree completamente en auth.users
+        await new Promise(resolve => setTimeout(resolve, 3000));
         
         // Intentar hacer login automáticamente después de la confirmación
         console.log("Intentando login automático después de confirmación...");
@@ -131,13 +135,17 @@ const RegisterScreen: React.FC = () => {
         });
         
         if (loginError) {
-          console.log("Login automático falló, el usuario deberá hacer login manualmente:", loginError.message);
-        } else {
+          console.log("Login automático falló:", loginError.message);
+          // Si el login falla, usar el usuario del signUp
+          console.log("Usando usuario del signUp");
+        } else if (loginData?.user) {
           console.log("Login automático exitoso!");
+          usuarioFinal = loginData.user;
+          userIdFinal = loginData.user.id;
         }
       }
 
-      if (!authData.user) {
+      if (!usuarioFinal || !userIdFinal) {
         console.error("No se recibió user de auth");
         const errorMsg = "No se pudo crear el usuario. Verifica tu conexión a internet y las credenciales de Supabase.";
         setError(errorMsg);
@@ -146,12 +154,36 @@ const RegisterScreen: React.FC = () => {
         return;
       }
 
-      console.log("Usuario creado en auth, ID:", authData.user.id);
+      console.log("Usuario final en auth, ID:", userIdFinal);
+
+      // Verificar que el usuario existe en auth.users antes de insertar
+      console.log("Verificando que el usuario existe en auth.users...");
+      const { data: { user: verifiedUser }, error: verifyError } = await supabase.auth.getUser();
+      
+      if (verifyError || !verifiedUser || verifiedUser.id !== userIdFinal) {
+        console.error("Error verificando usuario:", verifyError);
+        // Esperar un poco más y reintentar
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        const { data: { user: retryUser } } = await supabase.auth.getUser();
+        if (retryUser) {
+          userIdFinal = retryUser.id;
+          console.log("Usuario verificado después del retry, ID:", userIdFinal);
+        } else {
+          const errorMsg = "No se pudo verificar el usuario. Por favor intenta iniciar sesión manualmente.";
+          setError(errorMsg);
+          Alert.alert("Error", errorMsg);
+          setLoading(false);
+          return;
+        }
+      } else {
+        userIdFinal = verifiedUser.id;
+        console.log("Usuario verificado correctamente, ID:", userIdFinal);
+      }
 
       // 2. Crear registro en la tabla usuario
-      console.log("Creando registro en tabla usuario...");
+      console.log("Creando registro en tabla usuario con id_propietario:", userIdFinal);
       const usuarioData = {
-        id: authData.user.id, // UUID de auth.users (FK)
+        id_propietario: userIdFinal, // UUID de auth.users (FK)
         nombre: nombre.trim(),
         apellido: apellido.trim(),
         telefono: telefono.trim(),

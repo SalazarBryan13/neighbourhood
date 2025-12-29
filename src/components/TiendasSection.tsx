@@ -39,7 +39,11 @@ const TiendasSection: React.FC = () => {
               })
             }>
             {tienda.imagen_url ? (
-              <Image source={{uri: tienda.imagen_url}} style={styles.tiendaImage} />
+              <Image 
+                source={{uri: tienda.imagen_url}} 
+                style={styles.tiendaImage}
+                resizeMode="cover"
+              />
             ) : (
               <View style={[styles.tiendaImage, styles.tiendaImagePlaceholder]}>
                 <MaterialIcons name="storefront" size={40} color="#666666" />
@@ -153,7 +157,6 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 8,
-    resizeMode: 'cover',
     backgroundColor: '#F5F5F5',
   },
   tiendaImagePlaceholder: {

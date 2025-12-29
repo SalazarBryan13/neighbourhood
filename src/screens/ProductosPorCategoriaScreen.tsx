@@ -12,23 +12,102 @@ import {
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useProductos } from '../hooks/useProductos';
+import { useTiendas } from '../hooks/useTiendas';
+import { apiClient } from '../lib/apiClient';
 
 interface RouteParams {
   categoriaId: number;
   categoriaNombre: string;
 }
 
+type Producto = {
+  id_producto: number;
+  id_tienda: number;
+  id_inventario: number;
+  id_categoria: number;
+  nombre: string;
+  descripcion?: string;
+  precio: number | string;
+  imagen_url?: string;
+  activo: boolean;
+};
+
 const ProductosPorCategoriaScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { categoriaId, categoriaNombre } = (route.params as RouteParams) || {};
+  const { tiendas, fetchTiendas } = useTiendas();
   
-  const { productos, loading, error, fetchProductos } = useProductos(categoriaId);
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchProductos();
-  }, [categoriaId, fetchProductos]);
+    cargarProductos();
+  }, [categoriaId]);
+
+  const cargarProductos = async () => {
+    if (!categoriaId) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Cargar tiendas primero
+      await fetchTiendas();
+    } catch (err) {
+      console.error('❌ Error cargando tiendas:', err);
+      setError('Error al cargar tiendas');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Cargar productos cuando se obtengan las tiendas
+  useEffect(() => {
+    if (tiendas.length > 0 && categoriaId) {
+      obtenerProductosDeTodasLasTiendas();
+    }
+  }, [tiendas, categoriaId]);
+
+  const obtenerProductosDeTodasLasTiendas = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const todosLosProductos: (Producto & { nombreTienda?: string })[] = [];
+      
+      // Obtener productos de todas las tiendas
+      for (const tienda of tiendas) {
+        try {
+          const productosTienda = await apiClient.get<Producto[]>(`/productos/${tienda.id_tienda}`);
+          // Filtrar por categoría y agregar nombre de tienda
+          const productosFiltrados = (productosTienda || []).filter(
+            p => p.id_categoria === categoriaId
+          ).map(producto => ({
+            ...producto,
+            nombreTienda: tienda.nombre_tienda,
+          }));
+          todosLosProductos.push(...productosFiltrados);
+        } catch (err) {
+          console.error(`❌ Error obteniendo productos de tienda ${tienda.id_tienda}:`, err);
+        }
+      }
+
+      // Normalizar precios
+      const productosNormalizados = todosLosProductos.map(producto => ({
+        ...producto,
+        precio: typeof producto.precio === 'string' ? parseFloat(producto.precio) : producto.precio,
+      }));
+
+      console.log('✅ Productos obtenidos de todas las tiendas:', productosNormalizados.length);
+      setProductos(productosNormalizados);
+    } catch (err) {
+      console.error('❌ Error obteniendo productos:', err);
+      setError('Error al cargar productos');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleProductoPress = (producto: any) => {
     (navigation as any).navigate('ProductoDetalle', {
@@ -59,11 +138,11 @@ const ProductosPorCategoriaScreen: React.FC = () => {
           </Text>
         )}
         <Text style={styles.productoPrecio}>
-          ${item.precio.toFixed(2)}
+          ${typeof item.precio === 'number' ? item.precio.toFixed(2) : parseFloat(item.precio || '0').toFixed(2)}
         </Text>
-        {item.inventario?.tienda && (
+        {(item as any).nombreTienda && (
           <Text style={styles.productoTienda} numberOfLines={1}>
-            {item.inventario.tienda.nombre_tienda}
+            {(item as any).nombreTienda}
           </Text>
         )}
       </View>

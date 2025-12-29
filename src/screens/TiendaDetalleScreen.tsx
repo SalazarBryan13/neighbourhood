@@ -39,7 +39,7 @@ const TiendaDetalleScreen: React.FC = () => {
     undefined,
     tiendaId,
   );
-  const { categorias } = useCategorias();
+  const { categorias, refetch: fetchCategorias } = useCategorias(tiendaId);
   const { total, cantidadItems } = useCarrito();
 
   const [search, setSearch] = useState('');
@@ -50,9 +50,11 @@ const TiendaDetalleScreen: React.FC = () => {
   useEffect(() => {
     if (tiendaId) {
       fetchProductos();
+      fetchCategorias();
     }
-  }, [tiendaId, fetchProductos]);
+  }, [tiendaId, fetchProductos, fetchCategorias]);
 
+  // Las categorías ya vienen filtradas por tienda, solo necesitamos filtrar por las que tienen productos
   const categoriasDeLaTienda = useMemo(() => {
     const ids = new Set(productos.map((p) => p.id_categoria));
     return categorias.filter((c) => ids.has(c.id_categoria));
@@ -101,7 +103,9 @@ const TiendaDetalleScreen: React.FC = () => {
             {item.descripcion}
           </Text>
         )}
-        <Text style={styles.productPrice}>${item.precio.toFixed(2)}</Text>
+        <Text style={styles.productPrice}>
+          ${typeof item.precio === 'number' ? item.precio.toFixed(2) : parseFloat(item.precio || '0').toFixed(2)}
+        </Text>
       </View>
     </TouchableOpacity>
   );
