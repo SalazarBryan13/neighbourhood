@@ -1,10 +1,8 @@
 import { supabase } from './supabaseClient';
 
-// URL base de tu API FastAPI - ajusta según tu configuración
-// Configura EXPO_PUBLIC_API_URL en tu archivo .env (ej: http://localhost:8000)
-// IMPORTANTE: Si usas dispositivo físico o emulador, usa la IP local de tu máquina:
-// Ejemplo: http://192.168.1.100:8000 (reemplaza con tu IP local)
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
+// URL base de tu API FastAPI desplegada en Render
+// Configura EXPO_PUBLIC_API_URL en tu archivo .env para sobrescribir este valor
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://backend-fastapi-6awv.onrender.com';
 
 // Log de la URL configurada (solo en desarrollo)
 if (__DEV__) {
@@ -45,7 +43,7 @@ class ApiClient {
   ): Promise<T> {
     console.log(`🔐 Obteniendo token de autenticación...`);
     const token = await this.getAuthToken();
-    
+
     if (!token) {
       console.error('❌ No hay token de autenticación disponible');
       throw new Error('No hay sesión activa. Por favor inicia sesión.');
@@ -62,17 +60,17 @@ class ApiClient {
 
     try {
       console.log(`🚀 Enviando petición ${options.method || 'GET'} a ${url}`);
-      
+
       // Agregar timeout de 10 segundos
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
-      
+
       const response = await fetch(url, {
         ...options,
         headers,
         signal: controller.signal,
       });
-      
+
       clearTimeout(timeoutId);
       console.log(`📊 Respuesta recibida: ${response.status} ${response.statusText}`);
 
@@ -83,10 +81,10 @@ class ApiClient {
         } catch {
           errorData = { detail: response.statusText };
         }
-        
+
         // FastAPI devuelve errores de validación (422) en formato específico
         let errorMessage: string;
-        
+
         if (response.status === 422 && Array.isArray(errorData.detail)) {
           // Error de validación: mostrar cada campo con su mensaje
           const validationErrors = errorData.detail
@@ -99,13 +97,13 @@ class ApiClient {
           console.error(`Error de validación en ${endpoint}:`, errorData.detail);
         } else if (errorData.detail) {
           // Otro tipo de error con detail
-          errorMessage = typeof errorData.detail === 'string' 
-            ? errorData.detail 
+          errorMessage = typeof errorData.detail === 'string'
+            ? errorData.detail
             : JSON.stringify(errorData.detail);
         } else {
           errorMessage = `Error ${response.status}: ${response.statusText}`;
         }
-        
+
         console.error(`Error ${response.status} en ${endpoint}:`, errorData);
         throw new Error(errorMessage);
       }
@@ -118,12 +116,12 @@ class ApiClient {
       // Intentar parsear JSON, pero si está vacío, retornar null
       const text = await response.text();
       console.log(`📄 Respuesta texto (primeros 200 chars): ${text.substring(0, 200)}`);
-      
+
       if (!text || text.trim() === '') {
         console.log(`⚠️ Respuesta vacía para ${endpoint}`);
         return null as T;
       }
-      
+
       try {
         const parsed = JSON.parse(text) as T;
         console.log(`✅ JSON parseado exitosamente para ${endpoint}:`, Array.isArray(parsed) ? `${parsed.length} items` : '1 item');
@@ -136,7 +134,7 @@ class ApiClient {
       }
     } catch (error) {
       console.error(`❌ Error en petición ${endpoint}:`, error);
-      
+
       // Manejar timeout
       if (error instanceof Error && error.name === 'AbortError') {
         const timeoutError = new Error(
@@ -149,14 +147,14 @@ class ApiClient {
         );
         throw timeoutError;
       }
-      
+
       // Manejar errores de red
       if (error instanceof TypeError) {
-        const isNetworkError = 
-          error.message.includes('fetch') || 
+        const isNetworkError =
+          error.message.includes('fetch') ||
           error.message.includes('Failed to fetch') ||
           error.message.includes('Network request failed');
-          
+
         if (isNetworkError) {
           console.error(`🌐 Error de red: ¿Está corriendo el servidor FastAPI en ${this.baseUrl}?`);
           console.error(`🔍 Verifica que el servidor esté corriendo y accesible desde ${url}`);
@@ -171,7 +169,7 @@ class ApiClient {
           throw networkError;
         }
       }
-      
+
       throw error;
     }
   }
