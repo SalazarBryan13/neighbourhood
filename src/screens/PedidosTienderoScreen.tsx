@@ -180,6 +180,17 @@ const PedidosTienderoScreen: React.FC = () => {
           </View>
         </View>
 
+        {/* Dirección del cliente */}
+        {item.direccion && (
+          <View style={styles.filaDireccion}>
+            <MaterialIcons name="location-on" size={16} color="#66BB6A" />
+            <Text style={styles.filaDireccionTexto} numberOfLines={2}>
+              {item.direccion.direccion}
+              {item.direccion.referencia && ` - ${item.direccion.referencia}`}
+            </Text>
+          </View>
+        )}
+
         {/* Observaciones si existen */}
         {item.observaciones && (
           <View style={styles.filaObservaciones}>
@@ -522,6 +533,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9E9E9E',
     fontStyle: 'italic',
+  },
+  filaDireccion: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    backgroundColor: '#E8F5E9',
+    padding: 10,
+    borderRadius: 8,
+  },
+  filaDireccionTexto: {
+    flex: 1,
+    fontSize: 13,
+    color: '#666666',
+    fontWeight: '500',
   },
   estadoBadge: {
     flexDirection: 'row',

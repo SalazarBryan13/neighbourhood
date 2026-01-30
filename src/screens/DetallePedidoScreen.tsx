@@ -130,11 +130,27 @@ const DetallePedidoScreen: React.FC = () => {
             </View>
           )}
           {pedido.direccion && (
-            <View style={styles.pedidoInfoRow}>
-              <MaterialIcons name="location-on" size={20} color="#4CAF50" />
-              <Text style={[styles.pedidoInfoValue, styles.direccionText]}>
+            <View style={styles.direccionContainer}>
+              <View style={styles.direccionHeader}>
+                <MaterialIcons name="location-on" size={20} color="#66BB6A" />
+                <Text style={styles.direccionLabel}>Dirección de Entrega</Text>
+              </View>
+              <Text style={styles.direccionTexto}>
                 {pedido.direccion.direccion}
               </Text>
+              {pedido.direccion.referencia && (
+                <View style={styles.referenciaContainer}>
+                  <MaterialIcons name="info" size={16} color="#666666" />
+                  <Text style={styles.referenciaTexto}>
+                    Referencia: {pedido.direccion.referencia}
+                  </Text>
+                </View>
+              )}
+              {(pedido.direccion.latitud && pedido.direccion.longitud) && (
+                <Text style={styles.coordenadasTexto}>
+                  📍 Coordenadas: {pedido.direccion.latitud.toFixed(6)}, {pedido.direccion.longitud.toFixed(6)}
+                </Text>
+              )}
             </View>
           )}
           {pedido.observaciones && (
@@ -261,9 +277,53 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textTransform: 'capitalize',
   },
-  direccionText: {
-    marginLeft: 8,
+  direccionContainer: {
+    marginTop: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+    backgroundColor: '#E8F5E9',
+    padding: 12,
+    borderRadius: 8,
+  },
+  direccionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  direccionLabel: {
+    fontSize: 14,
+    color: '#66BB6A',
+    fontWeight: '600',
+  },
+  direccionTexto: {
+    fontSize: 14,
+    color: '#000000',
+    fontWeight: '500',
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  referenciaContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#C8E6C9',
+  },
+  referenciaTexto: {
     flex: 1,
+    fontSize: 13,
+    color: '#666666',
+    fontStyle: 'italic',
+  },
+  coordenadasTexto: {
+    fontSize: 11,
+    color: '#999999',
+    marginTop: 4,
+    fontFamily: 'monospace',
   },
   observacionesContainer: {
     marginTop: 8,
